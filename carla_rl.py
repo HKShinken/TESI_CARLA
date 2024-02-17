@@ -230,12 +230,12 @@ class DQNAgent:
         minibatch = random.sample(self.replay_memory, MINIBATCH_SIZE) #creazione di un minibatch col sample recuperato
         
         current_states = np.array([transition[0] for transition in minibatch])/255 #scaling dell'immagine
-        with self.graph.as_default():
-            current_qs_list = self.model.predict(current_states, PREDICTION_BATCH_SIZE) #predizione 
+        #forse non serve with self.graph.as_default():
+        current_qs_list = self.model.predict(current_states, PREDICTION_BATCH_SIZE) #predizione 
 
         new_current_states = np.array([transition[3] for transition in minibatch])/255 #scaling dell'immagine , [transition[3] + il prossimo stato
-        with self.graph.as_default():
-            future_qs_list = self.target_model.predict(new_current_states, PREDICTION_BATCH_SIZE) #predizione 
+        #forse non serve with self.graph.as_default():
+        future_qs_list = self.target_model.predict(new_current_states, PREDICTION_BATCH_SIZE) #predizione 
         
         X = [] #input
         y = [] #outputs
@@ -290,7 +290,7 @@ class DQNAgent:
         self.training_initialized = True
 
         while True:
-            if self.terminate:
+            if self.terminate: #attende terminazione flag thread altrimenti continua l'addestramento
                 return
             self.train()
             time.sleep(0.01)
@@ -373,7 +373,8 @@ if __name__ == '__main__':
             min_reward = min(ep_rewards[-AGGREGATE_STATS_EVERY:])
             max_reward = max(ep_rewards[-AGGREGATE_STATS_EVERY:])
             agent.tensorboard.update_stats(reward_avg=average_reward, reward_min=min_reward, reward_max=max_reward, epsilon=epsilon)
-        
+        print('STAMPO MIN REWARD CALCOLATO')
+        print(min_reward)
          # Save model, but only when min reward is greater or equal a set value
         if min_reward >= MIN_REWARD:
             agent.model.save(f'F:/models_carla_rl/models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
@@ -383,7 +384,7 @@ if __name__ == '__main__':
             epsilon *= EPSILON_DECAY
             epsilon = max(MIN_EPSILON, epsilon)
     
-    # termina l'addestramento per questo thread e lo chiude
+    # termina l'addestramento per il thread e lo chiude
     agent.terminate = True
     trainer_thread.join()
     agent.model.save(f'F:/models_carla_rl/models/{MODEL_NAME}__{max_reward:_>7.2f}max_{average_reward:_>7.2f}avg_{min_reward:_>7.2f}min__{int(time.time())}.model')
