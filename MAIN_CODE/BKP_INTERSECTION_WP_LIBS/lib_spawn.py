@@ -50,18 +50,18 @@ def find_sp_behind_wp(world, waypoint, spawn_points, tolerance=10.0):
     
     return closest_spawn
 
-
 #richiama find_sp_behind_wp e stampa a video lo spawn restituito
 #opzionalmente è possibile focalizzare lo spettatore sullo spwan
-def get_spawn_behind_wp(world, waypoint, distance, focus=0):
+def get_spawn_behind_wp(world, waypoint, distance=10.0, focus=0):
    
     spawn_points = world.get_map().get_spawn_points()
     
     # Trova il punto di spawn dietro al waypoint scelto, che sia distante almeno quanto indicato nella tolleranza
     closest_spawn = find_sp_behind_wp(world, waypoint, spawn_points, distance)
     
-    
-    '''if waypoint:
+    #DEBUG
+    '''
+    if waypoint:
         world.debug.draw_string(waypoint.transform.location,
             str(waypoint.transform.location.x),
             draw_shadow=True,color=carla.Color(r=255, g=0, b=0),life_time=30.0,persistent_lines=False)'''
@@ -75,14 +75,14 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
             spectator.set_transform(carla.Transform(camera_location, camera_rotation))
         
         # Scrive "Spawn" verde sul punto di spawn
-        '''world.debug.draw_string(
+        world.debug.draw_string(
             closest_spawn.location,
-            "SPAWN",
+            "Spawn",
             draw_shadow=False,
             color=carla.Color(r=0, g=255, b=0),
-            life_time=15,
+            life_time=15.0,
             persistent_lines=False
-        )'''
+        )
 
         #print(f"Spawn per {waypoint} di id_lane {waypoint.lane_id} ALLE COORDINATE {closest_spawn}")
     else:
@@ -91,7 +91,6 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
     return closest_spawn
 
 #ausiliaria per spawnare veicolo definendo opzionalmente autopilota o il tipo di veicolo
-#nb: il parametro spawn_point è una coppia (spawn, wp_destinazione)
 def spawn_vehicle(world, spawn_point, autopilot=False, vehicle_id='NA'):
     
     if vehicle_id == 'NA':
@@ -99,10 +98,10 @@ def spawn_vehicle(world, spawn_point, autopilot=False, vehicle_id='NA'):
 
     bp_lib = world.get_blueprint_library() 
     vehicle_bp = bp_lib.find('vehicle.lincoln.mkz_2020')
-    vehicle = world.try_spawn_actor(vehicle_bp, spawn_point[0])
+    vehicle = world.try_spawn_actor(vehicle_bp, spawn_point)
     if autopilot == True:
        vehicle.set_autopilot(autopilot)
-    return (vehicle, spawn_point[1])
+    return vehicle
 
 
 #funzione ausiliaria che data una lista di coppie di wp spawna il veicolo dietro ogni priomo wp di ogni coppia
@@ -113,7 +112,7 @@ def spawn_all_behind_wp_couple(world, pairs, distance, focus):
         if idx == len(pairs) - 1 and focus == 1:
             tmp = 1
         spawn_point = get_spawn_behind_wp(world, wp1, distance, tmp)
-        vehicle_list.append(spawn_vehicle(world, spawn_point)) #, autopilot=False, vehicle_id='NA')
+        vehicle_list.append( (spawn_vehicle(world, spawn_point), wp2) ) #, autopilot=False, vehicle_id='NA')
         idx = idx + 1
     return vehicle_list
 
@@ -123,11 +122,9 @@ def list_all_behind_wp_couple(world, grouped_pairs, distance):
     
     for wp2_coords, pairs in grouped_pairs.items():
         if len(pairs) > 1:
-           #DECOMMENTA PER DEBUG
-           #dr.draw_intersection(world, pairs)
-           #per ogni spawn indico anche il secondo wp di destinazione
+           dr.draw_intersection(world, pairs)
            for (wp1, wp2) in pairs:
-              spawn_list.append( (get_spawn_behind_wp(world, wp1, distance, 0), wp2) ) 
+              spawn_list.append( get_spawn_behind_wp(world, wp1, distance, 0) ) 
 
     return spawn_list
 
@@ -136,7 +133,7 @@ def wp_distance(wp1, wp2):
     distance = 999999
     if wp1 is not None and wp2 is not None:
         distance =  wp1.transform.location.distance(wp2.transform.location)
-    return abs(distance)
+    return distance
 
 #routine che rileva se un veicolo ha superato un semaforo rosso
 def has_crossed_red_light(vehicle, world):
