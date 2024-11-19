@@ -15,7 +15,7 @@ stop_threads = False
 
 #routine che per ogni veicolo in input avvia un agente in un thread dedicato
 #agent type  cautious, normal, aggressive
-def roam_vehicle(world, in_vehicle, dest_wp,  visibile=0, agent_behaviour='normal'):
+def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour='normal'):
     
     #wp corrispondente allo spawn del veicolo
     start_location = in_vehicle.get_location()
@@ -49,31 +49,32 @@ def roam_vehicle(world, in_vehicle, dest_wp,  visibile=0, agent_behaviour='norma
         in_vehicle.apply_control(agent.run_step())
         curr_wp = world.get_map().get_waypoint(in_vehicle.get_location())
         
-        if visibile == 1:
-            dr.draw_symbol(world, curr_wp, 0.01, 'NPC', 255, 255, 255) 
-            dr.draw_symbol(world, dest_wp, 0.01, 'DESTINAZIONE', 255, 255, 255)
+        if visibile >= 1:
+            dr.draw_symbol(world, curr_wp, 0.01, symbol, 255, 255, 255) 
+        if visibile == 2:
+            dr.draw_symbol(world, dest_wp, 0.01, f"DESTINAZIONE_{symbol}", 255, 255, 255)
 
 
-#avvia i veicoli in lista direzionandoli verso il wp di destinazione
-def start_vehicle_list(world, spawned_vehicles, visible = 1, behaviour = 'normal'):
+#avvia i veicoli in lista direzionandoli verso il rispettivo wp di destinazione
+def start_vehicle_list(world, spawned_vehicles, symbol, visible = 1, behaviour = 'normal'):
     stop_threads = False
     threads = []
     for v, destwp in spawned_vehicles:
         if v is not None and destwp is not None:
-            thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, visible, behaviour.lower()))
+            thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, symbol, visible, behaviour.lower()))
             threads.append(thread)
             thread.start()
     return threads;
 
 #avvia il singolo veicolo direzionandolo verso il wp di destinazione
-def start_vehicle(world, spawned_vehicle, visible = 1, behaviour = 'normal'):
+def start_vehicle(world, spawned_vehicle, symbol, visible = 1, behaviour = 'normal'):
     stop_threads = False
     thread = None
     print(f"in start {spawned_vehicle}")
     v = spawned_vehicle[0]
     destwp = spawned_vehicle[1]
     if destwp is not None and destwp is not None:
-        thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, visible, behaviour.lower()))
+        thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, symbol, visible, behaviour.lower()))
         thread.start()
     return thread;
         

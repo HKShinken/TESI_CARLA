@@ -92,7 +92,7 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
 
 #ausiliaria per spawnare veicolo definendo opzionalmente autopilota o il tipo di veicolo
 #nb: il parametro spawn_point è una coppia (spawn, wp_destinazione)
-def spawn_vehicle(world, spawn_point, autopilot=False, vehicle_id='NA'):
+def spawn_vehicle(world, spawn_point, vehicle_id='NA'):
     
     if vehicle_id == 'NA':
        vehicle_id = 'vehicle.lincoln.mkz_2020'
@@ -100,9 +100,22 @@ def spawn_vehicle(world, spawn_point, autopilot=False, vehicle_id='NA'):
     bp_lib = world.get_blueprint_library() 
     vehicle_bp = bp_lib.find('vehicle.lincoln.mkz_2020')
     vehicle = world.try_spawn_actor(vehicle_bp, spawn_point[0])
-    if autopilot == True:
-       vehicle.set_autopilot(autopilot)
     return (vehicle, spawn_point[1])
+
+#spwna i veicoli nella lista degli spawn passata in input, n.b: la lista è fatta da coppia (spwan, wp_Dest)
+def spawn_traffic(world, spawn_list):
+
+    vehicle_list = []
+    vehicle_id = 'vehicle.lincoln.mkz_2020'
+    bp_lib = world.get_blueprint_library() 
+
+    for s, w in spawn_list:
+       vehicle_bp = random.choice(bp_lib.filter('vehicle.*'))
+       vehicle = world.try_spawn_actor(vehicle_bp, s)
+       if vehicle is not None:
+           vehicle_list.append((vehicle, w))
+
+    return vehicle_list;
 
 
 #funzione ausiliaria che data una lista di coppie di wp spawna il veicolo dietro ogni priomo wp di ogni coppia
