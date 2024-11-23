@@ -9,7 +9,9 @@ import numpy as np #in this example to change image representation - re-shaping
 import math
 import random
 
-def attach_sensors(world, vehicle):
+min_dist = 999
+
+def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     
     ###############################################      INIZIALIZZAZIONE SENSORI      #####################################################
     # SENSORE TELECAMERA PER FINESTRA PYGAME
@@ -36,8 +38,9 @@ def attach_sensors(world, vehicle):
     
     # attributi sensore ostacoli
     obstacle_bp = bp_lib.find('sensor.other.obstacle')
-    obstacle_bp.set_attribute('hit_radius','0.5')
-    obstacle_bp.set_attribute('distance','50')
+    obstacle_bp.set_attribute('hit_radius','1') #ampiezza rilevazione 0.5
+    obstacle_bp.set_attribute('distance',str(max_dist_obstacle)) #distanza max rilevazione, default 50
+    obstacle_bp.set_attribute('only_dynamics', 'True')  # rileva soloveicoli o pedoni in movimento
     obstacle_sensor = world.spawn_actor(obstacle_bp, carla.Transform(), attach_to=vehicle)
     
     #################################### FUNZIONI DI CALLBACK SENSORI #########################################
@@ -62,9 +65,13 @@ def attach_sensors(world, vehicle):
         
     #disegna un cerchio sull'ostacolo rilevato   
     def obstacle_callback(event, data_dict, camera, k_mat):
-        if 'static' not in event.other_actor.type_id: #salta rilevazione ostacoli statici come marciapiedi, strade, cassete posta ecc..
-            data_dict['obstacle'].append({'transform': event.other_actor.type_id, 'frame': event.frame})
-            
+        global min_dist
+        if event.distance < min_dist:
+            min_dist = event.distance
+
+        if min_dist < tol:
+           print(f"Stampo Attore coinvolto {event.other_actor} e distanza {event.distance}")
+        
         world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
         image_point = get_image_point(event.other_actor.get_transform().location, k_mat, world_2_camera)
         if  0 < image_point[0] < image_w and 0 < image_point[1] < image_h:
@@ -172,8 +179,11 @@ def attach_sensors(world, vehicle):
     ################################### SEZIONE CATTURA DATI DAI SENSORI  ################################################
     while True:
         #SE L'AGENT HA CONCLUSO COLORA DI BIANCO IL PERCORSO COMPLETATO
-        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False: # or agent.done() :
-            print("Destinazione raggiunta, Fine misurazione")
+        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False or min_dist < tol :
+            if min_dist < tol:
+               print(f"Distanza di sicurezza {tol} non rispettata, fine simulazione") 
+            if vehicle.is_alive ==  False:
+               print("Destinazione EGO vehicle raggiunta, fine simulazione")
             break
         
         # Latitudine dal sensore GNSS

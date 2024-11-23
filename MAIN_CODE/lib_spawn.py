@@ -130,7 +130,7 @@ def spawn_all_behind_wp_couple(world, pairs, distance, focus):
         idx = idx + 1
     return vehicle_list
 
-#funzione ausiliaria che dato un insieme di liste di coppie di wp che si incrociano restituiser una lista di spawn ditro a ciascun primo wp 
+#funzione ausiliaria che dato un insieme di liste di coppie di wp che si incrociano restituiser una lista di spawn dietro a ciascun primo wp di ciascuna coppia
 def list_all_behind_wp_couple(world, grouped_pairs, distance):
     spawn_list = []
     
@@ -189,4 +189,52 @@ def has_crossed_red_light(vehicle, world):
     # Se il risultato è maggiore di zero, il veicolo ha superato la linea di stop
     return dot_product > 0
 
+#recupera un veicolo allo spawn point specificato
+def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
 
+    # Ottieni le coordinate del punto di spawn arrotondate
+    spawn_x = round(spawn_point[0].location.x, r)
+    spawn_y = round(spawn_point[0].location.y, r)
+    
+    if len(vehicles) != 0:
+        for vehicle, w_dest in vehicles:
+            # Ottieni la posizione del veicolo
+            vehicle_location = vehicle.get_transform().location
+            
+            # Arrotonda le coordinate del veicolo
+            vehicle_x = round(vehicle_location.x, r)
+            vehicle_y = round(vehicle_location.y, r)
+    
+            if vehicle_x == spawn_x and vehicle_y == spawn_y:
+                return (vehicle, w_dest)
+
+    return None
+
+#rimuove dalla lista dei veicoli NPC l'ego vehicle passato in put
+def recompute_npc_list(vehicle_list, target_pair):
+
+    target_vehicle, target_waypoint = target_pair
+    def round_coordinates(location):
+        """Restituisce le coordinate arrotondate alla terza cifra decimale."""
+        return round(location.x, 3), round(location.y, 3), round(location.z, 3)
+
+    target_vehicle_coords = round_coordinates(target_vehicle.get_transform().location)
+    target_waypoint_coords = round_coordinates(target_waypoint.transform.location)
+
+    return [
+        (vehicle, waypoint)
+        for vehicle, waypoint in vehicle_list
+        if (
+            round_coordinates(vehicle.get_transform().location) != target_vehicle_coords or
+            round_coordinates(waypoint.transform.location) != target_waypoint_coords
+        )
+    ]
+
+def compare_location(loc1, loc2):
+
+    def round_coordinates(location):
+        """Restituisce le coordinate x e y arrotondate alla terza cifra decimale."""
+        return round(location.x, 3), round(location.y, 3)
+
+    # Confronto delle coordinate x e y approssimate alla terza cifra decimale
+    return round_coordinates(loc1) == round_coordinates(loc2)
