@@ -9,10 +9,15 @@ import numpy as np #in this example to change image representation - re-shaping
 import math
 import random
 
-min_dist = 999
 
+min_dist = 1000
 
-def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
+def reset_min_dist():
+    global min_dist  # Usa la parola chiave 'global' per modificare la variabile globale
+    min_dist = 1000
+
+def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
+
     collision_check = False
     ###############################################      INIZIALIZZAZIONE SENSORI      #####################################################
     # SENSORE TELECAMERA PER FINESTRA PYGAME
@@ -39,8 +44,8 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     
     # attributi sensore ostacoli
     obstacle_bp = bp_lib.find('sensor.other.obstacle')
-    obstacle_bp.set_attribute('hit_radius','1') #detection radius, deault 0.5
-    obstacle_bp.set_attribute('distance',str(max_dist_obstacle)) #detection range, default 50
+    obstacle_bp.set_attribute('hit_radius','0.5') #detection radius, deault 0.5
+    obstacle_bp.set_attribute('distance',str(max_dist_check)) #detection range, default 50
     obstacle_bp.set_attribute('only_dynamics', 'True')  # only vehicle or pedestrians
     obstacle_sensor = world.spawn_actor(obstacle_bp, carla.Transform(), attach_to=vehicle)
     
@@ -233,8 +238,26 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         lineType)
 
          # Current detected dist from next obstacle
-        cv2.putText(sensor_data['rgb_image'], 'Obstacle dist: ' + str(min_dist), 
+        cv2.putText(sensor_data['rgb_image'], 'Tolerance dist: ' + str(tol), 
         (10,140), 
+        font, 
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+        # Current detected dist from next obstacle
+        cv2.putText(sensor_data['rgb_image'], 'Detected Obstacle distance: ' + str(min_dist), 
+        (10,160), 
+        font, 
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+        # Current detected dist from next obstacle
+        cv2.putText(sensor_data['rgb_image'], 'PRESS Q TO EXIT THIS WINDOWS ', 
+        (10,180), 
         font, 
         fontScale,
         fontColor,
@@ -289,4 +312,4 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     lane_inv_sensor.stop()
     obstacle_sensor.stop()
     cv2.destroyAllWindows()
-    return (not(vehicle.is_alive), not(min_dist) < tol, collision_check)
+    return (not(vehicle.is_alive), not(min_dist) < tol, min_dist, collision_check)

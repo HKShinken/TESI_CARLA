@@ -11,26 +11,24 @@ reload(dr)
 def find_sp_behind_wp(world, waypoint, spawn_points, tolerance=10.0):
 
     closest_spawn = None
-    min_distance = float('inf')
+    min_distance = 999
     
-    # Direzione del waypoint come vettore
+    # wp direction as vector
     waypoint_direction = waypoint.transform.get_forward_vector()
-    waypoint_lane_id = waypoint.lane_id  # Identificatore della corsia del waypoint
+    waypoint_lane_id = waypoint.lane_id  # id lane of current wp
 
-    #per ogni spawn point della mappa
     for spawn in spawn_points:
-        # Calcola la distanza tra il punto di spawn e il waypoint
         distance = math.sqrt(
             (spawn.location.x - waypoint.transform.location.x) ** 2 +
             (spawn.location.y - waypoint.transform.location.y) ** 2
         )
         
-        # Verifica se il punto di spawn distante almeno a "tolerance" metri dal wp considerato
-        if distance >= tolerance:
-            # converte lo spawn point in eame in waypoint di tipo Driving (guida) in modo ne possa recuperare l'id lane
+        # check if the distance between wp and sp is lower than tolerance
+        if distance <= tolerance:
+            # gets the waypoint corresponding to spawn point in order to get lane id
             spawn_waypoint = world.get_map().get_waypoint(spawn.location, project_to_road=True, lane_type=carla.LaneType.Driving)
             
-            #stessa corsia del wp in input
+            #check if converted sp has same lane id as input wp
             if spawn_waypoint and spawn_waypoint.lane_id == waypoint_lane_id:
                 # vettore direzione dal waypoint al punto di spawn
                 direction_to_spawn = carla.Vector3D(
@@ -39,15 +37,14 @@ def find_sp_behind_wp(world, waypoint, spawn_points, tolerance=10.0):
                     0
                 )
                 
-                # Calcola il prodotto scalare per verificare se il punto di spawn è dietro al waypoint
+                # dot product to check if sp is behind wp
                 dot_product = (direction_to_spawn.x * waypoint_direction.x + 
                                direction_to_spawn.y * waypoint_direction.y)
                 
-                # Se il prodotto scalare è negativo, il punto è dietro al waypoint
+                # if negative, sp is behind wp
                 if dot_product < 0 and distance < min_distance:
                     min_distance = distance
                     closest_spawn = spawn
-    
     return closest_spawn
 
 
@@ -142,7 +139,7 @@ def list_all_behind_wp_couple(world, grouped_pairs, distance):
            for (wp1, wp2) in pairs:
               spawn_list.append( (get_spawn_behind_wp(world, wp1, distance, 0), wp2) ) 
 
-    return sorted( spawn_list, key=lambda pair: (pair[0].location.x, pair[0].location.y) )
+    return sorted( spawn_list, key=lambda tuple: (tuple[0].location.x, tuple[0].location.y, tuple[1].transform.location.x, tuple[1].transform.location.y) )
 
 #calcola la distanza in metri tra due wp
 def wp_distance(wp1, wp2):
