@@ -17,42 +17,46 @@ stop_threads = False
 #agent type  cautious, normal, aggressive
 def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour='normal'):
     
-    #wp corrispondente allo spawn del veicolo
+    #wp of vehicle
     start_location = in_vehicle.get_location()
     start_waypoint = world.get_map().get_waypoint(start_location)
     
-    #L' AGENTE BEHAVIOUR REAGISCE A SEMAFORI E SEGNALI DI STOP, EVITA PEDONI, SEGUE LE MACCHINE 
-    #3 POSSIBILI PROFILI AL MOMENTO: cautious, normal, aggressive -> https://carla.readthedocs.io/en/0.9.12/adv_agents/#behavior-types
+    #AGENT REACTS TO TRAFFIC LIGHTS, STOP, TRIES TO AVOID COLLISION WITH PEDESTRIANS AND VEHICLES.. 
+    #3 PROFILES AL MOMENTO: cautious, normal, aggressive -> https://carla.readthedocs.io/en/0.9.12/adv_agents/#behavior-types
     agent = BehaviorAgent(in_vehicle, behavior=agent_behaviour)
     
-    #recupera in forma di lista il percorso tra inizio e destinazione
+    #retrives shortest path between wp1 and wp2
     route = agent.trace_route(start_waypoint, dest_wp)
 
-    #TEMPORANEO: IGNORA I SEMAFORI
+    #wip TEMPORANEO: IGNORA I SEMAFORI
     agent.ignore_traffic_lights(True)
     
     agent.set_destination(dest_wp.transform.location)
     #print(dest_wp)
     curr_wp = None
     global stop_threads
-    #main loop
+
     while True:
         #controlla se sorpassa un rosso
         #if spb.has_crossed_red_light(in_vehicle, world) > 0:
             #print("ATTENZIONE, SEMAFORO ROSSO SUPERATO!")
-        #tolleranza media di distanza per ora 3,7
+        #tolerance from destination 3,7
         if agent.done() or spb.wp_distance(curr_wp, dest_wp) <= 3.7 or stop_threads:
             print(f"Il veicolo {in_vehicle} ha raggiunto la sua destinazione (Stop forzato={stop_threads})")
             in_vehicle.destroy()
             break
-        #a ogni iterazione applica il controllo dell'agent
+        #for each iteration applies agentt controls
         in_vehicle.apply_control(agent.run_step())
         curr_wp = world.get_map().get_waypoint(in_vehicle.get_location())
+
+        r, g, b = 255, 255, 255;
+        if symbol == 'EGO_VEHICLE':
+          g,b = 0,0
         
         if visibile >= 1:
-            dr.draw_symbol(world, curr_wp, 0.01, symbol, 255, 255, 255) 
+            dr.draw_symbol(world, curr_wp, 0.01, symbol, r, g, b) 
         if visibile == 2:
-            dr.draw_symbol(world, dest_wp, 0.01, f"DESTINAZIONE_{symbol}", 255, 255, 255)
+            dr.draw_symbol(world, dest_wp, 0.01, f"DESTINAZIONE_{symbol}", r, g, b)
 
 
 #avvia i veicoli in lista direzionandoli verso il rispettivo wp di destinazione

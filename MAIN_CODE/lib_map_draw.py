@@ -11,19 +11,20 @@ draw_time = 30
 
 #ausiliarie per disegnare simboli sulla mappa
 #colora il percorso tra due waypoint, bianco se i punto sono allineati sulla stessa trada, rosso se c'è una curva
-def draw_route(world, wp1, wp2, symbol, r, g, b):
+def draw_route(world, wp1, wp2, symbol, r, g, b, limit=99999):
     distance = 3.0  # Distanza tra i waypoint intermedi in metri
     symbol = str(symbol)
 
     wp1 = wp1.next(distance)[0]
     
     # Disegna simboli lungo il percorso fino al waypoint di destinazione
-    while wp1.transform.location.distance(wp2.transform.location) > distance:
+    while wp1.transform.location.distance(wp2.transform.location) > distance and limit > 0:
         # Disegna il simbolo nel waypoint corrente
         world.debug.draw_string(wp1.transform.location, symbol, draw_shadow=True,
-                                color=carla.Color(r, g, b), life_time = draw_time, persistent_lines=True)
+                                color=carla.Color(r, g, b), life_time = 5, persistent_lines=True)
         # Vai al prossimo waypoint
         wp1 = wp1.next(distance)[0]
+        limit = limit -1
 
 
 #disegna due x rosse sui wp
@@ -64,14 +65,9 @@ def draw_intersection(world, pairs):
         
         # Controllo se sono sullo stesso asse x o y
         if dx <= tolerance or  dy <= tolerance:
-            #print(f"Pair {idx}: I waypoints sono allineati ({wp1.transform.location.x} - {wp1.transform.location.y}) - ({wp2.transform.location.x} - {wp2.transform.location.y})")
-            #draw_couple(world,pair_counter, wp1, wp2)
             draw_route(world, wp1, wp2, '<->', 0, 0, 255)
         else:
-            # altrimenti c'è un angolo tra i due wp
-            #print(f"Pair {idx}: tra i waypoints c'è una curva ({wp1.transform.location.x} - {wp1.transform.location.y}) - ({wp2.transform.location.x} - {wp2.transform.location.y})")
-            #draw_couple(world, pair_counter, wp1, wp2)
-            draw_route(world, wp1, wp2, '^', 255, 0, 0 )
+            draw_route(world, wp1, wp2, '|', 255, 0, 0 )
             
         pair_indexer[(round(wp2.transform.location.x, 3), round(wp2.transform.location.y, 3))] = (wp1,wp2);
         pair_counter = pair_counter + 1

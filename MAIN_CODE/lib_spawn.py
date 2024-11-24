@@ -142,7 +142,7 @@ def list_all_behind_wp_couple(world, grouped_pairs, distance):
            for (wp1, wp2) in pairs:
               spawn_list.append( (get_spawn_behind_wp(world, wp1, distance, 0), wp2) ) 
 
-    return spawn_list
+    return sorted( spawn_list, key=lambda pair: (pair[0].location.x, pair[0].location.y) )
 
 #calcola la distanza in metri tra due wp
 def wp_distance(wp1, wp2):
@@ -230,6 +230,7 @@ def recompute_npc_list(vehicle_list, target_pair):
         )
     ]
 
+#confronta due coordinate, non usa z perchè uno spwan può essere più altro di un wp
 def compare_location(loc1, loc2):
 
     def round_coordinates(location):
@@ -238,3 +239,10 @@ def compare_location(loc1, loc2):
 
     # Confronto delle coordinate x e y approssimate alla terza cifra decimale
     return round_coordinates(loc1) == round_coordinates(loc2)
+
+#ricava un waypoint a partire da uno spawn point
+def get_wp_from_sp(world, sp):
+    return  world.get_map().get_waypoint(sp.location, lane_type=carla.LaneType.Driving)
+#recupera un waypoint a partire da un veicolo
+def get_wp_from_vh(world, vh):
+    return  world.get_map().get_waypoint(vh.get_location(), lane_type=carla.LaneType.Driving)

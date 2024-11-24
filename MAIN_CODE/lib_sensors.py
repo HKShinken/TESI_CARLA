@@ -11,8 +11,9 @@ import random
 
 min_dist = 999
 
+
 def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
-    
+    collision_check = False
     ###############################################      INIZIALIZZAZIONE SENSORI      #####################################################
     # SENSORE TELECAMERA PER FINESTRA PYGAME
     bp_lib = world.get_blueprint_library()
@@ -38,9 +39,9 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     
     # attributi sensore ostacoli
     obstacle_bp = bp_lib.find('sensor.other.obstacle')
-    obstacle_bp.set_attribute('hit_radius','1') #ampiezza rilevazione 0.5
-    obstacle_bp.set_attribute('distance',str(max_dist_obstacle)) #distanza max rilevazione, default 50
-    obstacle_bp.set_attribute('only_dynamics', 'True')  # rileva soloveicoli o pedoni in movimento
+    obstacle_bp.set_attribute('hit_radius','1') #detection radius, deault 0.5
+    obstacle_bp.set_attribute('distance',str(max_dist_obstacle)) #detection range, default 50
+    obstacle_bp.set_attribute('only_dynamics', 'True')  # only vehicle or pedestrians
     obstacle_sensor = world.spawn_actor(obstacle_bp, carla.Transform(), attach_to=vehicle)
     
     #################################### FUNZIONI DI CALLBACK SENSORI #########################################
@@ -63,14 +64,11 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     def collision_callback(event, data_dict):
         data_dict['collision'] = True
         
-    #disegna un cerchio sull'ostacolo rilevato   
+    #obstacle sensors, dtecting ditance and involved actor  
     def obstacle_callback(event, data_dict, camera, k_mat):
         global min_dist
         if event.distance < min_dist:
             min_dist = event.distance
-
-        if min_dist < tol:
-           print(f"Stampo Attore coinvolto {event.other_actor} e distanza {event.distance}")
         
         world_2_camera = np.array(camera.get_transform().get_inverse_matrix())
         image_point = get_image_point(event.other_actor.get_transform().location, k_mat, world_2_camera)
@@ -144,7 +142,7 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     lane_inv_sensor.listen(lambda event: lane_inv_callback(event, sensor_data))
     obstacle_sensor.listen(lambda event: obstacle_callback(event, sensor_data, camera, K))
     
-    # Some parameters for text on screen
+    # Parameters for text on screen
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,50)
     fontScale              = 0.5
@@ -152,7 +150,7 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     thickness              = 2
     lineType               = 2
     
-    # Disegna la bussola (in radianti) con una linea direzionata verso i punti cardinali
+    # Draw compass (in radiants) with line towards cardinal points
     def draw_compass(img, theta):
         compass_center = (700, 100)
         compass_size = 50
@@ -176,17 +174,17 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         cv2.line(img, compass_center, compass_point, (255, 255, 255), 3)
     	
     	
-    ################################### SEZIONE CATTURA DATI DAI SENSORI  ################################################
+    ################################### SENSOR MAIN CODE  ################################################
     while True:
         #SE L'AGENT HA CONCLUSO COLORA DI BIANCO IL PERCORSO COMPLETATO
-        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False or min_dist < tol :
+        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False:# or min_dist < tol :
             if min_dist < tol:
                print(f"Distanza di sicurezza {tol} non rispettata, fine simulazione") 
             if vehicle.is_alive ==  False:
-               print("Destinazione EGO vehicle raggiunta, fine simulazione")
+               print("EGO vehicle has reached his destination, end of simulation")
             break
         
-        # Latitudine dal sensore GNSS
+        # Latitude sensor GNSS
         cv2.putText(sensor_data['rgb_image'], 'Lat: ' + str(sensor_data['gnss'][0]), 
         (10,30), 
         font, 
@@ -195,7 +193,7 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         thickness,
         lineType)
         
-        # Longitudine dal sensore GNSS
+        # Longitude sensor GNSS
         cv2.putText(sensor_data['rgb_image'], 'Long: ' + str(sensor_data['gnss'][1]), 
         (10,50), 
         font, 
@@ -204,10 +202,10 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         thickness,
         lineType)
         
-        # Calcola il vettore di accelerazione sottraendo la gravità (-9.81)
+        #acceleration vector minus gravity (-9.81)
         accel = sensor_data['imu']['accel'] - carla.Vector3D(x=0,y=0,z=9.81)
         
-        # Stampa lintensità di accelerazione
+        # acceleration magnitude
         cv2.putText(sensor_data['rgb_image'], 'Accel: ' + str(accel.length()), 
         (10,70), 
         font, 
@@ -216,7 +214,7 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         thickness,
         lineType)
         
-        # Giroscopio
+        # Gyroscope
         cv2.putText(sensor_data['rgb_image'], 'Gyro: ' + str(sensor_data['imu']['gyro'].length()), 
         (10,100), 
         font, 
@@ -233,13 +231,23 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
         fontColor,
         thickness,
         lineType)
+
+         # Current detected dist from next obstacle
+        cv2.putText(sensor_data['rgb_image'], 'Obstacle dist: ' + str(min_dist), 
+        (10,140), 
+        font, 
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
         
-        # Disegna la bussola su schermo
+        # Draw compass on screen
         draw_compass(sensor_data['rgb_image'], sensor_data['imu']['compass'])
         
-        # stampa 'COLLISION' quando il flag del sensore è true, dura 20 fotogrammi
+        # print 'COLLISION' when flag sensor is true, lasts 20 frames
         if sensor_data['collision']:
             collision_counter -= 1
+            collision_check = True
             if collision_counter <= 1:
                 sensor_data['collision'] = False
             cv2.putText(sensor_data['rgb_image'], 'COLLISION', 
@@ -281,3 +289,4 @@ def attach_sensors(world, vehicle, max_dist_obstacle = 5, tol = 2):
     lane_inv_sensor.stop()
     obstacle_sensor.stop()
     cv2.destroyAllWindows()
+    return (not(vehicle.is_alive), not(min_dist) < tol, collision_check)
