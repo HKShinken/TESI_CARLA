@@ -11,13 +11,17 @@ import random
 
 
 min_dist = 1000
+max_speed = 0
 
 def reset_min_dist():
-    global min_dist  # Usa la parola chiave 'global' per modificare la variabile globale
+    global min_dist 
+    global max_speed
     min_dist = 1000
+    max_speed = 0
 
 def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
-
+    global max_speed
+    
     collision_check = False
     ###############################################      INIZIALIZZAZIONE SENSORI      #####################################################
     # SENSORE TELECAMERA PER FINESTRA PYGAME
@@ -57,10 +61,20 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
         data_dict['gnss'] = [data.latitude, data.longitude]
     
     def imu_callback(data, data_dict):
+        
+        speed_mps = velocity = 'NA'
+        
+        if vehicle.is_alive:
+            # velocity vector (Vector3D)
+            velocity = vehicle.get_velocity()
+            # vector norm (scalar velocity in m/s)
+            speed_mps = math.sqrt(velocity.x**2 + velocity.y**2 + velocity.z**2)
+        
         data_dict['imu'] = {
             'gyro': data.gyroscope,
             'accel': data.accelerometer,
-            'compass': data.compass
+            'compass': data.compass,
+            'speed': speed_mps
         }
         
     def lane_inv_callback(event, data_dict):
@@ -255,9 +269,21 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
         thickness,
         lineType)
 
-        # Current detected dist from next obstacle
-        cv2.putText(sensor_data['rgb_image'], 'PRESS Q TO EXIT THIS WINDOWS ', 
+        curr_speed = sensor_data['imu']['speed']
+        if curr_speed > max_speed: max_speed = curr_speed
+            
+        # Current detected speed m/s
+        cv2.putText(sensor_data['rgb_image'], 'Speed m/s: ' + str(curr_speed), 
         (10,180), 
+        font, 
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+
+        # exit button
+        cv2.putText(sensor_data['rgb_image'], 'PRESS Q TO EXIT THIS WINDOWS ', 
+        (10,200), 
         font, 
         fontScale,
         fontColor,
@@ -312,4 +338,4 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     lane_inv_sensor.stop()
     obstacle_sensor.stop()
     cv2.destroyAllWindows()
-    return (not(vehicle.is_alive), not(min_dist) < tol, min_dist, collision_check)
+    return (not(vehicle.is_alive), not(min_dist) < tol, min_dist, collision_check, max_speed)

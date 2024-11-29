@@ -81,8 +81,7 @@ def start_vehicle(world, spawned_vehicle, symbol, visible = 1, behaviour = 'norm
     stop_threads = False
     thread = None
     print(f"in start {spawned_vehicle}")
-    v = spawned_vehicle[0]
-    destwp = spawned_vehicle[1]
+    v, destwp= spawned_vehicle
     if destwp is not None and destwp is not None:
         thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, symbol, visible, behaviour.lower(), disable_trf))
         thread.start()
