@@ -17,7 +17,7 @@ def reset_min_dist():
     global min_dist 
     global max_speed
     min_dist = 1000
-    max_speed = 0
+    max_speed = -1
 
 def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     global max_speed
@@ -62,7 +62,7 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     
     def imu_callback(data, data_dict):
         
-        speed_mps = velocity = 'NA'
+        speed_mps = velocity = -1
         
         if vehicle.is_alive:
             # velocity vector (Vector3D)

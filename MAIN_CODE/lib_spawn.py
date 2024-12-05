@@ -25,6 +25,8 @@ def find_sp_behind_wp(world, waypoint, spawn_points, tolerance=10.0):
         
         # check if the distance between wp and sp is lower than tolerance
         if distance <= tolerance:
+            #print(tolerance)
+            #print(distance)
             # gets the waypoint corresponding to spawn point in order to get lane id
             spawn_waypoint = world.get_map().get_waypoint(spawn.location, project_to_road=True, lane_type=carla.LaneType.Driving)
             
@@ -97,7 +99,8 @@ def spawn_vehicle(world, spawn_point, vehicle_id='NA'):
     bp_lib = world.get_blueprint_library() 
     vehicle_bp = bp_lib.find('vehicle.lincoln.mkz_2020')
     vehicle = world.try_spawn_actor(vehicle_bp, spawn_point[0])
-    return (vehicle, spawn_point[1])
+    print(f"Spawned vehicle at: {spawn_point[0]}")
+    return (vehicle, spawn_point[1], spawn_point[0])
 
 #spwna i veicoli nella lista degli spawn passata in input, n.b: la lista è fatta da coppia (spwan, wp_Dest)
 def spawn_traffic(world, spawn_list):
@@ -110,19 +113,19 @@ def spawn_traffic(world, spawn_list):
        vehicle_bp = random.choice(bp_lib.filter('vehicle.*'))
        vehicle = world.try_spawn_actor(vehicle_bp, s)
        if vehicle is not None:
-           vehicle_list.append((vehicle, w))
+           vehicle_list.append((vehicle, w, s))
 
     return vehicle_list;
 
 
-#funzione ausiliaria che data una lista di coppie di wp spawna il veicolo dietro ogni priomo wp di ogni coppia
+#funzione ausiliaria che data una lista di coppie di wp spawna il veicolo dietro ogni primo wp di ogni coppia
 def spawn_all_behind_wp_couple(world, pairs, distance, focus):
     vehicle_list = []
-    tmp = 0
+    foc_tmp = 0
     for idx, (wp1, wp2) in enumerate(pairs):
         if idx == len(pairs) - 1 and focus == 1:
-            tmp = 1
-        spawn_point = get_spawn_behind_wp(world, wp1, distance, tmp)
+            foc_tmp = 1
+        spawn_point = get_spawn_behind_wp(world, wp1, distance, foc_tmp)
         vehicle_list.append(spawn_vehicle(world, spawn_point)) #, autopilot=False, vehicle_id='NA')
         idx = idx + 1
     return vehicle_list
@@ -133,11 +136,10 @@ def list_all_behind_wp_couple(world, grouped_pairs, distance):
     
     for wp2_coords, pairs in grouped_pairs.items():
         if len(pairs) > 1:
-           #DECOMMENTA PER DEBUG
-           #dr.draw_intersection(world, pairs)
-           #per ogni spawn indico anche il secondo wp di destinazione
            for (wp1, wp2) in pairs:
-              spawn_list.append( (get_spawn_behind_wp(world, wp1, distance, 0), wp2) ) 
+              sp = get_spawn_behind_wp(world, wp1, distance, 0)
+              if sp is not None:
+                 spawn_list.append( (sp, wp2) ) 
 
     return sorted( spawn_list, key=lambda tuple: (tuple[0].location.x, tuple[0].location.y, tuple[1].transform.location.x, tuple[1].transform.location.y) )
 
@@ -194,7 +196,7 @@ def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
     spawn_y = round(spawn_point[0].location.y, r)
     
     if len(vehicles) != 0:
-        for vehicle, w_dest in vehicles:
+        for vehicle, w_dest, spawn in vehicles:
             # Ottieni la posizione del veicolo
             vehicle_location = vehicle.get_transform().location
             
@@ -203,14 +205,15 @@ def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
             vehicle_y = round(vehicle_location.y, r)
     
             if vehicle_x == spawn_x and vehicle_y == spawn_y:
-                return (vehicle, w_dest)
+                return (vehicle, w_dest, spawn)
 
     return None
 
 #rimuove dalla lista dei veicoli NPC l'ego vehicle passato in put
 def recompute_npc_list(vehicle_list, target_pair):
 
-    target_vehicle, target_waypoint = target_pair
+    target_vehicle, target_waypoint, sp = target_pair
+    
     def round_coordinates(location):
         """Restituisce le coordinate arrotondate alla terza cifra decimale."""
         return round(location.x, 3), round(location.y, 3), round(location.z, 3)
@@ -219,8 +222,8 @@ def recompute_npc_list(vehicle_list, target_pair):
     target_waypoint_coords = round_coordinates(target_waypoint.transform.location)
 
     return [
-        (vehicle, waypoint)
-        for vehicle, waypoint in vehicle_list
+        (vehicle, waypoint, sp)
+        for vehicle, waypoint, sp in vehicle_list
         if (
             round_coordinates(vehicle.get_transform().location) != target_vehicle_coords or
             round_coordinates(waypoint.transform.location) != target_waypoint_coords

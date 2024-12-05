@@ -1,4 +1,5 @@
 import carla
+import math
 from collections import defaultdict
 
 #tolleranza di allineamento tra coppie su stessa lane di un incrocio 
@@ -16,6 +17,8 @@ def draw_route(world, wp1, wp2, symbol, r, g, b, draw_time, limit=99999):
     symbol = str(symbol)
 
     wp1 = wp1.next(distance)[0]
+
+    #print(f"distanza {math.sqrt( (wp1.transform.location.x - wp2.transform.location.x) ** 2 + (wp1.transform.location.y - wp2.transform.location.y) ** 2)}")
     
     # Disegna simboli lungo il percorso fino al waypoint di destinazione
     while wp1.transform.location.distance(wp2.transform.location) > distance and limit > 0:

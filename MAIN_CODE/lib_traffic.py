@@ -69,7 +69,7 @@ def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour
 def start_vehicle_list(world, spawned_vehicles, symbol, visible = 1, behaviour = 'normal', disable_trf = False):
     stop_threads = False
     threads = []
-    for v, destwp in spawned_vehicles:
+    for v, destwp, sp in spawned_vehicles:
         if v is not None and destwp is not None:
             thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, symbol, visible, behaviour.lower(), disable_trf))
             threads.append(thread)
@@ -81,7 +81,7 @@ def start_vehicle(world, spawned_vehicle, symbol, visible = 1, behaviour = 'norm
     stop_threads = False
     thread = None
     print(f"in start {spawned_vehicle}")
-    v, destwp= spawned_vehicle
+    v, destwp, sp= spawned_vehicle
     if destwp is not None and destwp is not None:
         thread = threading.Thread(target=roam_vehicle, args=(world, v, destwp, symbol, visible, behaviour.lower(), disable_trf))
         thread.start()
