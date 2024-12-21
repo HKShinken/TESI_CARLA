@@ -59,7 +59,6 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
     # Trova il punto di spawn dietro al waypoint scelto, che sia distante almeno quanto indicato nella tolleranza
     closest_spawn = find_sp_behind_wp(world, waypoint, spawn_points, distance)
     
-    
     '''if waypoint:
         world.debug.draw_string(waypoint.transform.location,
             str(waypoint.transform.location.x),
@@ -72,25 +71,14 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
             # Sposta la telecamera sul punto di spawn trovato
             spectator = world.get_spectator()
             spectator.set_transform(carla.Transform(camera_location, camera_rotation))
-        
-        # Scrive "Spawn" verde sul punto di spawn
-        '''world.debug.draw_string(
-            closest_spawn.location,
-            "SPAWN",
-            draw_shadow=False,
-            color=carla.Color(r=0, g=255, b=0),
-            life_time=15,
-            persistent_lines=False
-        )'''
-
-        #print(f"Spawn per {waypoint} di id_lane {waypoint.lane_id} ALLE COORDINATE {closest_spawn}")
     else:
-        print(f"Nessun punto di spawn trovato per {waypoint}")
+        print("Missing spawn for:")
+        dr.p_wp(waypoint)
         
     return closest_spawn
 
-#ausiliaria per spawnare veicolo definendo opzionalmente autopilota o il tipo di veicolo
-#nb: il parametro spawn_point è una coppia (spawn, wp_destinazione)
+#spawns a vehicle on selected spawn point
+#nb: spawn_point is a couple (spawn, wp_destinazione)
 def spawn_vehicle(world, spawn_point, vehicle_id='NA'):
     
     if vehicle_id == 'NA':
@@ -99,14 +87,13 @@ def spawn_vehicle(world, spawn_point, vehicle_id='NA'):
     bp_lib = world.get_blueprint_library() 
     vehicle_bp = bp_lib.find('vehicle.lincoln.mkz_2020')
     vehicle = world.try_spawn_actor(vehicle_bp, spawn_point[0])
-    print(f"Spawned vehicle at: {spawn_point[0]}")
+    #print(f"Spawned vehicle at: {spawn_point[0]}")
     return (vehicle, spawn_point[1], spawn_point[0])
 
-#spwna i veicoli nella lista degli spawn passata in input, n.b: la lista è fatta da coppia (spwan, wp_Dest)
+#spawns vehicles on given spawn list spawn -> list is composed by couples (spwan, wp_Dest)
 def spawn_traffic(world, spawn_list):
 
     vehicle_list = []
-    vehicle_id = 'vehicle.lincoln.mkz_2020'
     bp_lib = world.get_blueprint_library() 
 
     for s, w in spawn_list:
@@ -117,8 +104,7 @@ def spawn_traffic(world, spawn_list):
 
     return vehicle_list;
 
-
-#funzione ausiliaria che data una lista di coppie di wp spawna il veicolo dietro ogni primo wp di ogni coppia
+#for each wp couple spawns a vehicle behind each wp with a distance treshold
 def spawn_all_behind_wp_couple(world, pairs, distance, focus):
     vehicle_list = []
     foc_tmp = 0
@@ -143,7 +129,7 @@ def list_all_behind_wp_couple(world, grouped_pairs, distance):
 
     return sorted( spawn_list, key=lambda tuple: (tuple[0].location.x, tuple[0].location.y, tuple[1].transform.location.x, tuple[1].transform.location.y) )
 
-#calcola la distanza in metri tra due wp
+#waypoint distance in meters
 def wp_distance(wp1, wp2):
     distance = 999999
     if wp1 is not None and wp2 is not None:
@@ -188,10 +174,10 @@ def has_crossed_red_light(vehicle, world):
     # Se il risultato è maggiore di zero, il veicolo ha superato la linea di stop
     return dot_product > 0
 
-#recupera un veicolo allo spawn point specificato
+#gets vehicle on input spawn point
 def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
 
-    # Ottieni le coordinate del punto di spawn arrotondate
+    # spawn coordinates
     spawn_x = round(spawn_point[0].location.x, r)
     spawn_y = round(spawn_point[0].location.y, r)
     
@@ -209,7 +195,7 @@ def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
 
     return None
 
-#rimuove dalla lista dei veicoli NPC l'ego vehicle passato in put
+#remove from list the vehicle contained in target_pair
 def recompute_npc_list(vehicle_list, target_pair):
 
     target_vehicle, target_waypoint, sp = target_pair
@@ -230,19 +216,18 @@ def recompute_npc_list(vehicle_list, target_pair):
         )
     ]
 
-#confronta due coordinate, non usa z perchè uno spwan può essere più altro di un wp
+#compares coordinates using only x y
 def compare_location(loc1, loc2):
 
     def round_coordinates(location):
-        """Restituisce le coordinate x e y arrotondate alla terza cifra decimale."""
         return round(location.x, 3), round(location.y, 3)
 
-    # Confronto delle coordinate x e y approssimate alla terza cifra decimale
+    # check if are equals
     return round_coordinates(loc1) == round_coordinates(loc2)
 
-#ricava un waypoint a partire da uno spawn point
+#gets waypoint from spawn point
 def get_wp_from_sp(world, sp):
     return  world.get_map().get_waypoint(sp.location, lane_type=carla.LaneType.Driving)
-#recupera un waypoint a partire da un veicolo
+#gets waypoint from vehicle location
 def get_wp_from_vh(world, vh):
     return  world.get_map().get_waypoint(vh.get_location(), lane_type=carla.LaneType.Driving)
