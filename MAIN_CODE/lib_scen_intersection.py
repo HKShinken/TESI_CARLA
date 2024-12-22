@@ -4,6 +4,7 @@ import math
 import threading
 import lib_spawn as spb
 import lib_map_draw as dr
+import json
 from importlib import reload
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.behavior_agent import BehaviorAgent
@@ -47,5 +48,28 @@ def group_pairs_by_second_waypoint(waypoint_pairs):
         
     return coord_groups  
 
+#print waypoint coordinates aproximated to third digit
 def p_wp(w):
   return f"({round(w.transform.location.x,3)}) - ({round(w.transform.location.y,3)})"
+
+#reads json rows from files
+def read_json_scenarios(file_name):
+    json_list = []
+    try:
+        with open(file_name, "r", encoding="utf-8") as file:
+            for i, r in enumerate(file, start=1):
+                if i == 2:
+                    break
+                r = r.strip()
+                if r: #check if trimmed row is not empty
+                    try:
+                        json_obj = json.loads(r)  #read row as json struct
+                        json_list.append(json_obj)
+                    except json.JSONDecodeError as e:
+                        print(f"Error in row {i + 1}: invalid JSON format ({e})")
+        return json_list
+    except FileNotFoundError:
+        print(f"File '{file_name}' missing!!")
+    except Exception as e:
+        print(f"Error during parsing file '{file_name}': {e}")
+    return []
