@@ -5,6 +5,7 @@ import threading
 import lib_spawn as spb
 import lib_map_draw as dr
 import json
+import tkinter as tk
 from importlib import reload
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.behavior_agent import BehaviorAgent
@@ -58,8 +59,6 @@ def read_json_scenarios(file_name):
     try:
         with open(file_name, "r", encoding="utf-8") as file:
             for i, r in enumerate(file, start=1):
-                if i == 2:
-                    break
                 r = r.strip()
                 if r: #check if trimmed row is not empty
                     try:
@@ -73,3 +72,88 @@ def read_json_scenarios(file_name):
     except Exception as e:
         print(f"Error during parsing file '{file_name}': {e}")
     return []
+
+#update simulator with selected data from scenario file
+def update_sim_window(self):
+
+    #destroy all current actors and sensors
+    for actor in self.world.get_actors().filter('*vehicle*'):
+        actor.destroy()
+    for sen in self.world.get_actors().filter('*sensor*'):
+        sen.destroy()
+    
+    self.crossing_index = self.uploaded_scenarios[self.current_scenario]['junction_id'] - 1
+    self.spawn_index = self.uploaded_scenarios[self.current_scenario]['spawn_id'] - 1
+
+    p_ego = self.uploaded_scenarios[self.current_scenario]['ego_agent']
+    p_ego = p_ego[0].upper() + p_ego[1:]
+    self.spawn_profile.set(p_ego)
+
+    p_trf = self.uploaded_scenarios[self.current_scenario]['traffic_agent']
+    p_trf = p_trf[0].upper() + p_trf[1:]
+    self.traffic_profile.set(p_trf)
+    
+    #getting spawns and destinations
+    ego_spawn = self.uploaded_scenarios[self.current_scenario]['ego_spawn']
+    npc_spawn = self.uploaded_scenarios[self.current_scenario]['npc_spawn']
+    ego_dest = self.uploaded_scenarios[self.current_scenario]['ego_dest']
+    npc_dest = self.uploaded_scenarios[self.current_scenario]['npc_dest']
+
+    #creating spawn objects
+    lead_spawn = carla.Transform(carla.Location(x=npc_spawn['x'], y=npc_spawn['y'], z=npc_spawn['z']), carla.Rotation(pitch=npc_spawn['pitch'], yaw=npc_spawn['yaw'], roll=npc_spawn['roll']))
+    
+    lag_spawn = carla.Transform(carla.Location(x=ego_spawn['x'], y=ego_spawn['y'], z=ego_spawn['z']), carla.Rotation(pitch=ego_spawn['pitch'], yaw=ego_spawn['yaw'], roll=ego_spawn['roll']))
+
+    #creating waypoint destination
+    carla_map = self.world.get_map()
+    dest_lag_wp = carla_map.get_waypoint( carla.Location(x=ego_dest['x'], y=ego_dest['y'], z=ego_dest['z']) )
+    dest_lead_wp = carla_map.get_waypoint( carla.Location(x=npc_dest['x'], y=npc_dest['y'], z=npc_dest['z']) )
+
+    bp_lib = self.world.get_blueprint_library() 
+    vehicle_bp = bp_lib.find('vehicle.lincoln.mkz_2020')
+    
+    #spawning ego and lead
+    ego_v = self.world.try_spawn_actor(vehicle_bp, lag_spawn)
+    self.ego_vehicle = (ego_v, dest_lag_wp, lag_spawn)
+    self.ego_spawn_location = (lag_spawn, dest_lag_wp)
+    #print(ego_v)
+    
+    lead_v = self.world.try_spawn_actor(vehicle_bp, lead_spawn)
+    self.npc_vehicles = []
+    self.npc_vehicles.append( (lead_v, dest_lead_wp, lead_spawn) )
+    #print(lead_v)
+
+    #update interface
+    self.create_navigation_section("Junction", self.crossings, "Prev Junction", "Next Junction", 1)
+    self.create_navigation_section("Spawn", self.spawns, "Prev Spawn", "Next Spawn", 2)
+
+#opens new window listing scenarios loaded from file
+def open_navigator(self):
+    self.navigator_window = tk.Toplevel(self.root)
+    self.navigator_window.title("Select Scenario")
+
+    # show current data
+    self.label = tk.Label(self.navigator_window, text="", wraplength=400, justify="left")
+    self.label.pack(pady=10)
+
+    # current row number
+    self.line_number_label = tk.Label(self.navigator_window, text="")
+    self.line_number_label.pack(pady=5)
+
+    # Pulsanti di navigazione
+    self.prev_button = tk.Button(self.navigator_window, text="Prev", command=self.prev_line)
+    self.prev_button.pack(side="left", padx=20)
+
+    self.next_button = tk.Button(self.navigator_window, text="Next", command=self.next_line)
+    self.next_button.pack(side="right", padx=20)
+
+    # close button
+    self.quit_button = tk.Button(self.navigator_window, text="Close window", command=self.quit_action)
+    self.quit_button.pack(side="left", padx=10)
+    #load current scenario
+    self.load_button = tk.Button(self.navigator_window, text="Load Scenario", command=self.update_sim)
+    self.load_button.pack(side="right", padx=10)
+
+    # show first row
+    self.update_scen_label()
+

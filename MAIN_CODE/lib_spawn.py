@@ -72,8 +72,7 @@ def get_spawn_behind_wp(world, waypoint, distance, focus=0):
             spectator = world.get_spectator()
             spectator.set_transform(carla.Transform(camera_location, camera_rotation))
     else:
-        print("Missing spawn for:")
-        dr.p_wp(waypoint)
+        print(f"Missing spawn for: {dr.p_wp(waypoint)}")
         
     return closest_spawn
 
