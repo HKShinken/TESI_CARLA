@@ -8,6 +8,9 @@ import time # towork with images from cameras
 import numpy as np #in this example to change image representation - re-shaping
 import math
 import random
+import lib_traffic as trf
+from importlib import reload
+reload(trf)
 
 
 min_dist = 1000
@@ -23,37 +26,37 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     global max_speed
     
     collision_check = False
-    ###############################################      INIZIALIZZAZIONE SENSORI      #####################################################
-    # SENSORE TELECAMERA PER FINESTRA PYGAME
+    ###############################################    INIT SENSORS    #####################################################
+    # CAMERA SENSOR SEEN ON PYGAME WINDOW
     bp_lib = world.get_blueprint_library()
     camera_bp = bp_lib.find('sensor.camera.rgb') 
     camera_init_trans = carla.Transform(carla.Location(z=2))
     camera = world.spawn_actor(camera_bp, camera_init_trans, attach_to=vehicle)
     
-    # sensore di posizione
+    # gps sensor
     gnss_bp = bp_lib.find('sensor.other.gnss')
     gnss_sensor = world.spawn_actor(gnss_bp, carla.Transform(), attach_to=vehicle)
     
-    # sensore di misurazione movimento inerziale 
+    # intertial movement sensor
     imu_bp = bp_lib.find('sensor.other.imu')
     imu_sensor = world.spawn_actor(imu_bp, carla.Transform(), attach_to=vehicle)
     
-    # sensore rilevazione collisione
+    # set collision sensor
     collision_bp = bp_lib.find('sensor.other.collision')
     collision_sensor = world.spawn_actor(collision_bp, carla.Transform(), attach_to=vehicle)
     
-    # sensore invasione di corsia
+    # lane invasion sensor
     lane_inv_bp = bp_lib.find('sensor.other.lane_invasion')
     lane_inv_sensor = world.spawn_actor(lane_inv_bp, carla.Transform(), attach_to=vehicle)
     
-    # attributi sensore ostacoli
+    # setting obstacle sensor
     obstacle_bp = bp_lib.find('sensor.other.obstacle')
     obstacle_bp.set_attribute('hit_radius','0.5') #detection radius, deault 0.5
     obstacle_bp.set_attribute('distance',str(max_dist_check)) #detection range, default 50
     obstacle_bp.set_attribute('only_dynamics', 'True')  # only vehicle or pedestrians
     obstacle_sensor = world.spawn_actor(obstacle_bp, carla.Transform(), attach_to=vehicle)
     
-    #################################### FUNZIONI DI CALLBACK SENSORI #########################################
+    #################################### CALLBACK FUNCTION FOR SENSORS #########################################
     def rgb_callback(image, data_dict):
         data_dict['rgb_image'] = np.reshape(np.copy(image.raw_data), (image.height, image.width, 4))
     
@@ -94,7 +97,7 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
         if  0 < image_point[0] < image_w and 0 < image_point[1] < image_h:
             cv2.circle(data_dict['rgb_image'], tuple(image_point), 10, (0,0,255), 3)
     
-    # strutture dati ausiliare per poriezione coordinate su schermo
+    # acusiliari structures for coordinate projection
     def build_projection_matrix(w, h, fov):
         focal = w / (2.0 * np.tan(fov * np.pi / 360.0))
         K = np.identity(3)
@@ -111,9 +114,8 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
             # transform to camera coordinates
             point_camera = np.dot(w2c, point)
     
-            # conversione coordinate UE4's verso quelle standard
-            # (x, y ,z) -> (y, -z, x)
-            # rimuovendo la quarta componente
+            # conversion UE4's coordinates to "standard" -> (x, y ,z) -> (y, -z, x)
+            # delete 4th component
             point_camera = [point_camera[1], -point_camera[2], point_camera[0]]
     
             # now project 3D->2D using the camera matrix
@@ -195,12 +197,14 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     	
     ################################### SENSOR MAIN CODE  ################################################
     while True:
-        #SE L'AGENT HA CONCLUSO COLORA DI BIANCO IL PERCORSO COMPLETATO
-        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False:# or min_dist < tol :
+        #check if user press q key or agent has ended his route
+        if  cv2.waitKey(1) == ord('q') or vehicle.is_alive ==  False:
             if min_dist < tol:
-               print(f"Distanza di sicurezza {tol} non rispettata, fine simulazione") 
+               print(f"Safe distance {tol} violated, end of simulation") 
             if vehicle.is_alive ==  False:
                print("EGO vehicle has reached his destination, end of simulation")
+            #stop any active threads
+            trf.stop_threads()
             break
         
         # Latitude sensor GNSS

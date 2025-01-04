@@ -40,7 +40,6 @@ def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour
     agent.set_destination(dest_wp.transform.location)
     
     curr_wp = None
-    global stop_threads
 
     while True:
         #controlla se sorpassa un rosso
@@ -62,12 +61,11 @@ def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour
         if visibile >= 1:
             dr.draw_symbol(world, curr_wp, 0.01, symbol, r, g, b) 
         if visibile == 2:
-            dr.draw_symbol(world, dest_wp, 0.01, f"DESTINAZIONE_{symbol}", r, g, b)
+            dr.draw_symbol(world, dest_wp, 0.01, f"DESTINATION_{symbol}", r, g, b)
 
 
 #starts vehicles in list,towards each respective wp
 def start_vehicle_list(world, spawned_vehicles, symbol, visible = 1, behaviour = 'normal', disable_trf = False):
-    stop_threads = False
     threads = []
     for v, destwp, sp in spawned_vehicles:
         if v is not None and destwp is not None:
@@ -78,7 +76,6 @@ def start_vehicle_list(world, spawned_vehicles, symbol, visible = 1, behaviour =
 
 #starts single vehicle, towards its respective wp
 def start_vehicle(world, spawned_vehicle, symbol, visible = 1, behaviour = 'normal', disable_trf = False):
-    stop_threads = False
     thread = None
     v, destwp, sp= spawned_vehicle
     if destwp is not None and destwp is not None:
