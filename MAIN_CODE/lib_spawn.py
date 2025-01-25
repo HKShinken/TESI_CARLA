@@ -194,13 +194,12 @@ def get_vehicle_at_spawn_point(spawn_point, vehicles, r=3):
 
     return None
 
-#remove from list the vehicle contained in target_pair
-def recompute_npc_list(vehicle_list, target_pair):
+#remove from list the vehicle contained in target
+def recompute_npc_list(vehicle_list, target):
 
-    target_vehicle, target_waypoint, sp = target_pair
+    target_vehicle, target_waypoint, sp = target
     
     def round_coordinates(location):
-        """Restituisce le coordinate arrotondate alla terza cifra decimale."""
         return round(location.x, 3), round(location.y, 3), round(location.z, 3)
 
     target_vehicle_coords = round_coordinates(target_vehicle.get_transform().location)

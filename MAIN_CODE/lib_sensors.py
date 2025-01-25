@@ -1,11 +1,11 @@
-# https://carla.readthedocs.io/en/0.9.12/adv_agents/#:~:text=set_destination(end_location%2C%20start_location%3DNone,use%20the%20current%20agent%20location
+#https://carla.readthedocs.io/en/0.9.12/adv_agents/#:~:text=set_destination(end_location%2C%20start_location%3DNone,use%20the%20current%20agent%20location
 #BEHAVIOUR AGENT CON SETTAGGIO DESTINAZIONE
 
 #all imports
 import carla #the sim library itself
-import cv2 #to work with images from cameras
-import time # towork with images from cameras
-import numpy as np #in this example to change image representation - re-shaping
+import cv2 #to work with images from sensor cameras
+import time 
+import numpy as np #image re-shaping
 import math
 import random
 import lib_traffic as trf
@@ -246,7 +246,7 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
         thickness,
         lineType)
         
-        # bussola, nord è zero radianti
+        # compass, nord is zero radiants
         cv2.putText(sensor_data['rgb_image'], 'Compass: ' + str(sensor_data['imu']['compass']), 
         (10,120), 
         font, 
