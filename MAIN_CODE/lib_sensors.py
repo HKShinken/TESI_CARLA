@@ -24,7 +24,7 @@ def reset_min_dist():
 
 def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     global max_speed
-    
+    global min_dist
     collision_check = False
     ###############################################    INIT SENSORS    #####################################################
     # CAMERA SENSOR SEEN ON PYGAME WINDOW
@@ -51,7 +51,7 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
     
     # setting obstacle sensor
     obstacle_bp = bp_lib.find('sensor.other.obstacle')
-    obstacle_bp.set_attribute('hit_radius','0.5') #detection radius, deault 0.5
+    obstacle_bp.set_attribute('hit_radius','1') #detection radius, default 0.5
     obstacle_bp.set_attribute('distance',str(max_dist_check)) #detection range, default 50
     obstacle_bp.set_attribute('only_dynamics', 'True')  # only vehicle or pedestrians
     obstacle_sensor = world.spawn_actor(obstacle_bp, carla.Transform(), attach_to=vehicle)
@@ -300,6 +300,7 @@ def attach_sensors(world, vehicle, max_dist_check = 5, tol = 2):
         # print 'COLLISION' when flag sensor is true, lasts 20 frames
         if sensor_data['collision']:
             collision_counter -= 1
+            min_dist = 0
             collision_check = True
             if collision_counter <= 1:
                 sensor_data['collision'] = False

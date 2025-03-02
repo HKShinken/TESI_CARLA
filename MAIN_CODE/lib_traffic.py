@@ -41,10 +41,6 @@ def roam_vehicle(world, in_vehicle, dest_wp, symbol, visibile=0, agent_behaviour
     
     curr_wp = None
     while True:
-        #check if crosses red light
-        #if spb.has_crossed_red_light(in_vehicle, world) > 0:
-            #print("WARNING, RED LIGHT CROSSED!")
-        #tolerance from destination 3,7
         if agent.done() or spb.wp_distance(curr_wp, dest_wp) <= 3.7 or stop_event.is_set():
             print(f"Vehicle {in_vehicle} has reached its destination (Forced stop={stop_event.is_set()})")
             in_vehicle.destroy()
